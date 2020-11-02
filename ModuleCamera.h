@@ -29,7 +29,10 @@ public:
 	bool CleanUp();
 	void WindowResized(unsigned width, unsigned height);
 	void ModuleCamera::Rotate(const float3x3 rotation_matrix);
-
+	void MoveForward();
+	void MoveRight();
+	void Rotate();
+	void MouseRotate();
 
 protected:
 	Frustum frustum;

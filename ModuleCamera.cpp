@@ -48,37 +48,75 @@ update_status ModuleCamera::PreUpdate()
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf(*(projectionGL.v));
 
-	if (App->input->GetScrool() == SCROOL_UP) {
-		frustum.Translate(frustum.Front() * -Speed);
-		camera_position = frustum.Pos();
-	}
-	if (App->input->GetScrool() == SCROOL_DOWN) {
-		frustum.Translate(frustum.Front() * Speed);
-		camera_position = frustum.Pos();
-	}
+	MoveForward();
+	MoveRight();
+	MouseRotate();
 
-
-	if (App->input->GetKey(SDL_SCANCODE_W) == KEY_REPEAT) {
-		frustum.Translate(frustum.Front() * Speed);
-		camera_position = frustum.Pos();
+	if (App->input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_REPEAT) {
+		Speed = 4.0f;
 	}
-
-	if (App->input->GetKey(SDL_SCANCODE_S) == KEY_REPEAT) {
-		frustum.Translate(frustum.Front() * -Speed);
-		camera_position = frustum.Pos();
-	}
-
-	if (App->input->GetKey(SDL_SCANCODE_D)) {
-		frustum.Translate(frustum.WorldRight() * Speed);
-		camera_position = frustum.Pos();
-	}
-
-	if (App->input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
-		frustum.Translate(frustum.WorldRight() * -Speed);
-		camera_position = frustum.Pos();
+	else {
+		Speed = 2.0f;
 	}
 
 
+
+
+
+	frustum.SetPos(camera_position);
+	float4x4 viewMatrix = frustum.ViewMatrix();
+	viewMatrix.Transpose();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(*(viewMatrix.v));
+	
+	return UPDATE_CONTINUE;
+}
+
+void ModuleCamera::MouseRotate() {
+
+	if (App->input->GetMouseButtonDown(3) == KEY_REPEAT) {
+
+
+
+		int aux = App->input->GetMouseMotion().x;
+		int mousexoldNow = App->input->GetMousePosition().x;
+		int mouseXnow = aux + mousexoldNow;
+		if ((mousexoldNow - mouseXnow) < 0) {
+			Rotate(frustum.WorldMatrix().RotatePart().RotateY(-0.05f));
+		}
+		if ((mousexoldNow - mouseXnow) > 0) {
+			Rotate(frustum.WorldMatrix().RotatePart().RotateY(+0.05f));
+		}
+
+		int auxy = App->input->GetMouseMotion().y;
+		int mouseyoldNow = App->input->GetMousePosition().y;
+		int mouseynow = auxy + mouseyoldNow;
+		if ((mouseyoldNow - mouseynow) > 0) {
+
+			float radians_angle = DEGTORAD(pitch_angle);
+			float3 lookAtVector = frustum.Front() * cos(radians_angle) + frustum.Up() * sin(radians_angle);
+			lookAtVector.Normalize();
+
+			float3 upVector = frustum.WorldRight().Cross(lookAtVector);
+			frustum.SetFront(lookAtVector);
+			frustum.SetUp(upVector);
+		}
+		if ((mouseyoldNow - mouseynow) < 0) {
+
+			float radians_angle = DEGTORAD(pitch_angle);
+			float3 lookAtVector = frustum.Front() * cos(-radians_angle) + frustum.Up() * sin(-radians_angle);
+			lookAtVector.Normalize();
+
+			float3 upVector = frustum.WorldRight().Cross(lookAtVector);
+			frustum.SetFront(lookAtVector);
+			frustum.SetUp(upVector);
+		}
+
+	}
+
+}
+
+void ModuleCamera::Rotate() {
 
 	if (App->input->GetKey(SDL_SCANCODE_UP)) {
 		float radians_angle = DEGTORAD(pitch_angle);
@@ -112,68 +150,46 @@ update_status ModuleCamera::PreUpdate()
 		Rotate(frustum.WorldMatrix().RotatePart().RotateY(-0.005f));
 	}
 
+}
+
+void ModuleCamera::MoveRight() {
 
 
 
+	if (App->input->GetKey(SDL_SCANCODE_D)) {
+		frustum.Translate(frustum.WorldRight() * Speed);
+		camera_position = frustum.Pos();
+	}
 
+	if (App->input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
+		frustum.Translate(frustum.WorldRight() * -Speed);
+		camera_position = frustum.Pos();
+	}
+}
 
-	if (App->input->GetMouseButtonDown(3) == KEY_REPEAT) {
+void ModuleCamera:: MoveForward() {
 
-
-
-		int aux = App->input->GetMouseMotion().x;
-		int mousexoldNow = App->input->GetMousePosition().x;
-		int mouseXnow = aux + mousexoldNow;
-		if ((mousexoldNow - mouseXnow) < 0) {
-			Rotate(frustum.WorldMatrix().RotatePart().RotateY(-0.05f));
-		}
-		if ((mousexoldNow - mouseXnow) > 0) {
-			Rotate(frustum.WorldMatrix().RotatePart().RotateY(+0.05f));
-		}
-	
-		int auxy = App->input->GetMouseMotion().y;
-		int mouseyoldNow = App->input->GetMousePosition().y;
-		int mouseynow = auxy + mouseyoldNow;
-		if ((mouseyoldNow - mouseynow) > 0) {
-
-			float radians_angle = DEGTORAD(pitch_angle);
-			float3 lookAtVector = frustum.Front() * cos(radians_angle) + frustum.Up() * sin(radians_angle);
-			lookAtVector.Normalize();
-
-			float3 upVector = frustum.WorldRight().Cross(lookAtVector);
-			frustum.SetFront(lookAtVector);
-			frustum.SetUp(upVector);
-		}
-		if ((mouseyoldNow - mouseynow) < 0) {
-
-			float radians_angle = DEGTORAD(pitch_angle);
-			float3 lookAtVector = frustum.Front() * cos(-radians_angle) + frustum.Up() * sin(-radians_angle);
-			lookAtVector.Normalize();
-
-			float3 upVector = frustum.WorldRight().Cross(lookAtVector);
-			frustum.SetFront(lookAtVector);
-			frustum.SetUp(upVector);
-		}
-		
+	if (App->input->GetScrool() == SCROOL_UP) {
+		frustum.Translate(frustum.Front() * -Speed);
+		camera_position = frustum.Pos();
+	}
+	if (App->input->GetScrool() == SCROOL_DOWN) {
+		frustum.Translate(frustum.Front() * Speed);
+		camera_position = frustum.Pos();
 	}
 
 
-	if (App->input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
-		
+	if (App->input->GetKey(SDL_SCANCODE_W) == KEY_REPEAT) {
+		frustum.Translate(frustum.Front() * Speed);
+		camera_position = frustum.Pos();
+	}
+
+	if (App->input->GetKey(SDL_SCANCODE_S) == KEY_REPEAT) {
+		frustum.Translate(frustum.Front() * -Speed);
+		camera_position = frustum.Pos();
 	}
 
 
-
-
-
-
-	frustum.SetPos(camera_position);
-	float4x4 viewMatrix = frustum.ViewMatrix();
-	viewMatrix.Transpose();
-	glMatrixMode(GL_MODELVIEW);
-	glLoadMatrixf(*(viewMatrix.v));
-	
-	return UPDATE_CONTINUE;
 }
 
 // Called every draw update
